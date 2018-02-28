@@ -11,8 +11,8 @@ export default class extends TabGroupApplication {
       this.tabGroup.addTab(tab);
     });
 
-    this.tabGroup.addEventListener('open', (event) => {
-      this._onOpen(event);
+    this.tabGroup.addEventListener('open', async (event) => {
+      await this._onOpen(event);
       this._fadeIn();
     });
   }
@@ -41,7 +41,7 @@ export default class extends TabGroupApplication {
     });
   }
   
-  _onOpen(event) {
+  async _onOpen(event) {
     super._onOpen(event);
       
     // Test ES6 number formatting
@@ -57,39 +57,26 @@ export default class extends TabGroupApplication {
     Ti.API.info(l10nDE.format(new Date("2015-01-02")));
     
     // Get current location (asynchronous)
-    this._getUserLocation().then(coordinates => {
-      alert(`Found location!\n\nLatitude: ${coordinates.latitude}, Longitude: ${coordinates.longitude}`);
-    }).catch(error => {
+    try {
+      const { latitude, longitude } = await this._getUserLocationAsync();
+      alert(`Found location!\n\nLatitude: ${latitude}, Longitude: ${longitude}`);
+    } catch (error) {
       alert(`Error receiving current location: ${error}`);
-    });
-  }
-
-  // Use Promises
-  _getUserLocation() {
-    return new Promise((resolve, reject) => {
-      Ti.Geolocation.getCurrentPosition(event => {
-        if (!event.success) {
-          reject(event.error);
-        } else {
-          resolve(event.coords);
-        }
-      });
-    });
+    }
   }
   
   boot() {
     super.boot();
   }
   
-  // Use async/await
-  // FIXME: Current throws, work in progress!
-  
-  // async _getUserLocation() {
-  //   const coordinates = await Ti.Geolocation.getCurrentPosition(event => {
-  //     return new Promise(resolve => {
-  //       resolve(event.coords);
-  //     });
-  //   });
-  //   alert(`Found location! Latitude: ${coordinates.latitude}, Longitude: ${coordinates.longitude}`);
-  // }
+  async _getUserLocationAsync() {
+    return new Promise(resolve => { 
+      Ti.Geolocation.getCurrentPosition(({ success, error, coords }) => {
+        if (!success) {
+          return reject(error);
+        }
+        return resolve(coords);
+      });
+    });
+  }
 }
